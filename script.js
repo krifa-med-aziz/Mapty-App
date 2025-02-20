@@ -44,7 +44,7 @@ class Running extends Workout {
     return this.pace;
   }
 }
-class cycling extends Workout {
+class Cycling extends Workout {
   constructor(coords, distance, duration, elevationGain) {
     super(coords, distance, duration);
     this.elevationGain = elevationGain;
@@ -59,10 +59,11 @@ class cycling extends Workout {
 class App {
   #map;
   #mapEvent;
+  #workouts = [];
 
   constructor() {
     this._getPosition();
-    form.addEventListener('click', this._newWorkout.bind(this));
+    form.addEventListener('submit', this._newWorkout.bind(this));
     inputType.addEventListener('change', this._toggleElevationField);
   }
   _getPosition() {
@@ -99,13 +100,40 @@ class App {
   }
   _newWorkout(e) {
     e.preventDefault();
+
+    const validInputs = (...inputs) =>
+      inputs.every(input => Number.isFinite(input) && input > 0);
+
+    const type = inputType.value;
+    const distance = +inputDistance.value;
+    const duration = +inputDuration.value;
+    const { lat, lng } = this.#mapEvent.latlng;
+    let workout;
+
+    if (type === 'running') {
+      const cadence = +inputCadence.value;
+      if (!validInputs(distance, duration, cadence))
+        return alert('Inputs have to be positive numbers!');
+      workout = new Running([lat, lng], distance, duration, cadence);
+    }
+
+    if (type === 'cycling') {
+      const elevation = +inputElevation.value;
+      if (!validInputs(distance, duration, elevation))
+        return alert('Inputs have to be positive numbers!');
+      workout = new Cycling([lat, lng], distance, duration, elevation);
+    }
+    this.#workouts.push(workout);
+    this.renderWorkoutMarker(workout, type);
+
     inputDistance.value =
       inputDuration.value =
       inputCadence.value =
       inputElevation.value =
         '';
-    const { lat, lng } = this.#mapEvent.latlng;
-    L.marker([lat, lng])
+  }
+  renderWorkoutMarker(workout, type) {
+    L.marker(workout.coords)
       .addTo(this.#map)
       .bindPopup(
         L.popup({
@@ -113,10 +141,10 @@ class App {
           minWidth: 100,
           autoClose: false,
           closeOnClick: false,
-          className: 'running-popup',
+          className: `${type}-popup`,
         })
       )
-      .setPopupContent('Workout')
+      .setPopupContent(type)
       .openPopup();
   }
 }
