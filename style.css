@@ -215,3 +215,14 @@ a:visited {
 .cycling-popup .leaflet-popup-content-wrapper {
   border-left: 5px solid var(--color-brand--1);
 }
+
+.clear-btn {
+  background-color: rgb(190, 24, 24);
+  border: none;
+  padding: 0.7rem;
+  width: 20%;
+  margin: auto;
+  border-radius: 10px;
+  color: white;
+  cursor: pointer;
+}

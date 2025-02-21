@@ -7,6 +7,7 @@ const inputDistance = document.querySelector('.form__input--distance');
 const inputDuration = document.querySelector('.form__input--duration');
 const inputCadence = document.querySelector('.form__input--cadence');
 const inputElevation = document.querySelector('.form__input--elevation');
+const btn__Clear = document.querySelector('.clear-btn');
 
 class Workout {
   date = new Date();
@@ -34,7 +35,7 @@ class Workout {
     ];
     this.description = `${this.type[0].toUpperCase()}${this.type.slice(1)} on ${
       months[this.date.getMonth()]
-    } ${this.date.getDay()}`;
+    } ${this.date.getDate()}`;
   }
 }
 
@@ -67,13 +68,17 @@ class Cycling extends Workout {
 
 class App {
   #map;
+  #mapZoomLevel = 14;
   #mapEvent;
   #workouts = [];
 
   constructor() {
     this._getPosition();
+    this._getLocalStorage();
     form.addEventListener('submit', this._newWorkout.bind(this));
     inputType.addEventListener('change', this._toggleElevationField);
+    containerWorkouts.addEventListener('click', this._moveToPopup.bind(this));
+    btn__Clear.addEventListener('click', this.reset);
   }
   _getPosition() {
     if (navigator.geolocation) {
@@ -89,7 +94,7 @@ class App {
     const { latitude } = position.coords;
     const { longitude } = position.coords;
     const coords = [latitude, longitude];
-    this.#map = L.map('map').setView(coords, 14);
+    this.#map = L.map('map').setView(coords, this.#mapZoomLevel);
 
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution:
@@ -97,6 +102,9 @@ class App {
     }).addTo(this.#map);
 
     this.#map.on('click', this._showForm.bind(this));
+    this.#workouts.forEach(workout => {
+      this._renderWorkoutMarker(workout);
+    });
   }
   _showForm(mapE) {
     this.#mapEvent = mapE;
@@ -146,6 +154,7 @@ class App {
     this._renderWorkoutMarker(workout);
     this._renderWorkout(workout);
     this._hideForm();
+    this._setLocalStorage();
   }
   _renderWorkoutMarker(workout) {
     L.marker(workout.coords)
@@ -216,6 +225,32 @@ class App {
           </li> `;
     }
     form.insertAdjacentHTML('afterend', html);
+  }
+  _moveToPopup(e) {
+    const workoutEl = e.target.closest('.workout');
+    if (!workoutEl) return;
+    const workout = this.#workouts.find(
+      work => work.id === workoutEl.dataset.id
+    );
+    this.#map.setView(workout.coords, this.#mapZoomLevel, {
+      animate: true,
+      pan: {
+        duartion: 1,
+      },
+    });
+  }
+  _setLocalStorage() {
+    localStorage.setItem('workout', JSON.stringify(this.#workouts));
+  }
+  _getLocalStorage() {
+    const data = JSON.parse(localStorage.getItem('workout'));
+    if (!data) return;
+    this.#workouts = data;
+    this.#workouts.forEach(workout => this._renderWorkout(workout));
+  }
+  reset() {
+    localStorage.removeItem('workout');
+    location.reload();
   }
 }
 const app = new App();
